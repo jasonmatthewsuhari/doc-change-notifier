@@ -19,6 +19,13 @@ export function getDb(): Database.Database {
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
 
+      CREATE TABLE IF NOT EXISTS checks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        checked_at TEXT NOT NULL DEFAULT (datetime('now')),
+        changed INTEGER NOT NULL DEFAULT 0,
+        notified INTEGER NOT NULL DEFAULT 0
+      );
+
       CREATE TABLE IF NOT EXISTS doc_state (
         id INTEGER PRIMARY KEY CHECK (id = 1),
         doc_url TEXT NOT NULL,

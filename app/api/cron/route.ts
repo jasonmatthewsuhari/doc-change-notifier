@@ -10,13 +10,20 @@ export async function GET(req: NextRequest) {
   }
 
   const db = getDb();
+
+  // Seed doc_state from env if not yet set
+  const envDocUrl = process.env.DOC_URL ?? '';
+  if (envDocUrl) {
+    db.prepare('INSERT OR IGNORE INTO doc_state (id, doc_url) VALUES (1, ?)').run(envDocUrl);
+  }
+
   const state = db.prepare('SELECT * FROM doc_state WHERE id = 1').get() as {
     doc_url: string;
     content_hash: string | null;
   } | undefined;
 
   if (!state) {
-    return NextResponse.json({ ok: true, message: 'No doc configured yet' });
+    return NextResponse.json({ ok: true, message: 'No doc configured yet — set DOC_URL env var' });
   }
 
   const docId = extractDocId(state.doc_url);
@@ -30,6 +37,7 @@ export async function GET(req: NextRequest) {
 
   if (hash === state.content_hash) {
     db.prepare('UPDATE doc_state SET last_checked = ? WHERE id = 1').run(now);
+    db.prepare('INSERT INTO checks (checked_at, changed, notified) VALUES (?, 0, 0)').run(now);
     return NextResponse.json({ ok: true, changed: false });
   }
 
@@ -49,6 +57,8 @@ export async function GET(req: NextRequest) {
   db.prepare(`
     UPDATE doc_state SET content_hash = ?, last_checked = ?, last_changed = ? WHERE id = 1
   `).run(hash, now, now);
+
+  db.prepare('INSERT INTO checks (checked_at, changed, notified) VALUES (?, 1, ?)').run(now, emails.length);
 
   return NextResponse.json({ ok: true, changed: true, notified: emails.length });
 }
