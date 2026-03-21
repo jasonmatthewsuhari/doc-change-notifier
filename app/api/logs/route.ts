@@ -1,19 +1,17 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { getDb, initDb } from '@/lib/db';
 
 export async function GET() {
+  await initDb();
   const db = getDb();
 
-  const checks = db.prepare(`
-    SELECT checked_at, changed, notified
-    FROM checks
-    ORDER BY id DESC
-    LIMIT 100
-  `).all() as { checked_at: string; changed: number; notified: number }[];
+  const checksResult = await db.execute(`
+    SELECT checked_at, changed, notified FROM checks ORDER BY id DESC LIMIT 100
+  `);
+  const stateResult = await db.execute(`SELECT last_changed FROM doc_state WHERE id = 1`);
 
-  const state = db.prepare('SELECT last_changed FROM doc_state WHERE id = 1').get() as {
-    last_changed: string | null;
-  } | undefined;
-
-  return NextResponse.json({ checks, state });
+  return NextResponse.json({
+    checks: checksResult.rows,
+    state: stateResult.rows[0] ?? null,
+  });
 }

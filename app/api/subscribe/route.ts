@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { getDb, initDb } from '@/lib/db';
 import { sendConfirmationEmail } from '@/lib/mailer';
 import crypto from 'crypto';
 
@@ -12,24 +12,24 @@ export async function POST(req: NextRequest) {
   }
 
   const { email } = body;
-
   if (!email || typeof email !== 'string' || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: 'Invalid email' }, { status: 400 });
   }
 
+  await initDb();
   const db = getDb();
 
   const confirmToken = crypto.randomBytes(32).toString('hex');
   const unsubscribeToken = crypto.randomBytes(32).toString('hex');
 
-  db.prepare(`
-    INSERT INTO subscribers (email, confirm_token, unsubscribe_token)
-    VALUES (?, ?, ?)
-    ON CONFLICT(email) DO UPDATE SET confirm_token = excluded.confirm_token
-  `).run(email, confirmToken, unsubscribeToken);
+  await db.execute({
+    sql: `INSERT INTO subscribers (email, confirm_token, unsubscribe_token)
+          VALUES (?, ?, ?)
+          ON CONFLICT(email) DO UPDATE SET confirm_token = excluded.confirm_token`,
+    args: [email, confirmToken, unsubscribeToken],
+  });
 
   await sendConfirmationEmail(email, confirmToken);
 
-  // Always return the same response regardless of whether email was known
   return NextResponse.json({ ok: true });
 }
