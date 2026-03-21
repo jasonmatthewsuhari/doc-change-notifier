@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
   }
 
   const subsResult = await db.execute(`SELECT email, unsubscribe_token FROM subscribers WHERE confirmed = 1`);
-  const subscribers = subsResult.rows as { email: string; unsubscribe_token: string }[];
+  const subscribers = subsResult.rows as unknown as { email: string; unsubscribe_token: string }[];
   const emails = subscribers.map((s) => s.email);
   const unsubscribeTokens = Object.fromEntries(subscribers.map((s) => [s.email, s.unsubscribe_token]));
 
