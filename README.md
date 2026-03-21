@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# doc-change-notifier
 
-## Getting Started
+Get an email the moment a Google Doc changes. Built because I was tired of refreshing.
 
-First, run the development server:
+## How it works
+
+- Enter your email and confirm via a link
+- A cron job fetches the doc every minute, hashes the content, and compares
+- If it changed, all confirmed subscribers get an email with an unsubscribe link
+- A live check log is shown on the page
+
+## Stack
+
+- Next.js (App Router)
+- SQLite via `better-sqlite3`
+- Resend for email
+- Vercel Cron for polling
+
+## Setup
 
 ```bash
+npm install
+cp .env.local.example .env.local
+# fill in your values
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Description |
+|---|---|
+| `RESEND_API_KEY` | Your Resend API key |
+| `FROM_EMAIL` | Verified sender address e.g. `notify@yourdomain.com` |
+| `CRON_SECRET` | Random secret to protect the cron endpoint |
+| `DOC_URL` | Full URL of the Google Doc to watch |
+| `NEXT_PUBLIC_DOC_URL` | Same as above (exposed to client for the subscribe form) |
+| `NEXT_PUBLIC_BASE_URL` | Your deployment URL e.g. `https://yourapp.vercel.app` |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Deploy
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Push to Vercel, set the env vars in the dashboard. The `vercel.json` cron config registers automatically and hits `/api/cron?secret=YOUR_CRON_SECRET` every minute.
