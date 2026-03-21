@@ -3,8 +3,6 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-const DOC_URL = process.env.NEXT_PUBLIC_DOC_URL ?? '';
-
 type Check = { checked_at: string; changed: number; notified: number };
 type LogsData = {
   checks: Check[];
@@ -103,7 +101,7 @@ export default function Home() {
       const res = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, docUrl: DOC_URL }),
+        body: JSON.stringify({ email }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Something went wrong');

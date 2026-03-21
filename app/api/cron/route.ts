@@ -2,16 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { extractDocId, fetchDocContent, hashContent } from '@/lib/doc';
 import { sendUpdateEmail } from '@/lib/mailer';
+import crypto from 'crypto';
+
+function timingSafeEqual(a: string, b: string): boolean {
+  try {
+    return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+  } catch {
+    return false;
+  }
+}
 
 export async function GET(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get('secret');
-  if (secret !== process.env.CRON_SECRET) {
+  const authHeader = req.headers.get('authorization') ?? '';
+  const expected = `Bearer ${process.env.CRON_SECRET ?? ''}`;
+  if (!process.env.CRON_SECRET || !timingSafeEqual(authHeader, expected)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const db = getDb();
 
-  // Seed doc_state from env if not yet set
   const envDocUrl = process.env.DOC_URL ?? '';
   if (envDocUrl) {
     db.prepare('INSERT OR IGNORE INTO doc_state (id, doc_url) VALUES (1, ?)').run(envDocUrl);

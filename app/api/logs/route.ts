@@ -11,9 +11,8 @@ export async function GET() {
     LIMIT 100
   `).all() as { checked_at: string; changed: number; notified: number }[];
 
-  const state = db.prepare('SELECT last_changed, doc_url FROM doc_state WHERE id = 1').get() as {
+  const state = db.prepare('SELECT last_changed FROM doc_state WHERE id = 1').get() as {
     last_changed: string | null;
-    doc_url: string;
   } | undefined;
 
   return NextResponse.json({ checks, state });
