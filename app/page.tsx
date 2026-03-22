@@ -3,6 +3,62 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
+const SHUTDOWN_DEADLINE = new Date('2026-03-23T00:00:00Z').getTime();
+
+function useCountdown(deadline: number) {
+  const [timeLeft, setTimeLeft] = useState(deadline - Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeLeft(deadline - Date.now());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [deadline]);
+
+  const total = Math.max(0, timeLeft);
+  const hours = Math.floor(total / (1000 * 60 * 60));
+  const minutes = Math.floor((total % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((total % (1000 * 60)) / 1000);
+  return { hours, minutes, seconds, expired: total === 0 };
+}
+
+function ShutdownNotice() {
+  const { hours, minutes, seconds, expired } = useCountdown(SHUTDOWN_DEADLINE);
+
+  return (
+    <div className="fixed top-4 right-4 z-50 w-80 rounded-xl border border-amber-700/60 bg-neutral-900/95 backdrop-blur p-4 shadow-2xl space-y-3 text-sm">
+      <div className="flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
+        <span className="font-semibold text-amber-300">Projects are out!</span>
+      </div>
+      <p className="text-neutral-300 leading-relaxed">
+        Gemini CLI projects have launched. Check the discussion for more:{' '}
+        <a
+          href="https://github.com/google-gemini/gemini-cli/discussions/23391"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-amber-400 underline underline-offset-2 hover:text-amber-300 transition break-all"
+        >
+          google-gemini/gemini-cli #23391
+        </a>
+      </p>
+      <div className="rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2 space-y-1">
+        <p className="text-neutral-500 text-xs uppercase tracking-wider">Site shuts down in</p>
+        {expired ? (
+          <p className="text-red-400 font-mono font-semibold">Shut down</p>
+        ) : (
+          <p className="font-mono text-lg font-bold text-white tabular-nums">
+            {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+          </p>
+        )}
+      </div>
+      <p className="text-neutral-500 text-xs">
+        All subscriber data will be permanently deleted when the countdown ends.
+      </p>
+    </div>
+  );
+}
+
 type Check = { checked_at: string; changed: number; notified: number };
 type LogsData = {
   checks: Check[];
@@ -114,6 +170,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-neutral-950 text-white flex items-center justify-center p-6">
+      <ShutdownNotice />
       <div className="w-full max-w-md space-y-8">
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-neutral-400 text-sm font-mono">
@@ -144,14 +201,15 @@ export default function Home() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg bg-neutral-900 border border-neutral-800 px-4 py-3 text-white placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+              disabled
+              className="w-full rounded-lg bg-neutral-900 border border-neutral-800 px-4 py-3 text-white placeholder-neutral-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition opacity-50 cursor-not-allowed"
             />
             <button
               type="submit"
-              disabled={status === 'loading'}
-              className="w-full rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 px-4 py-3 font-semibold transition"
+              disabled
+              className="w-full rounded-lg bg-emerald-600 disabled:opacity-50 px-4 py-3 font-semibold transition cursor-not-allowed"
             >
-              {status === 'loading' ? 'Subscribing...' : 'Notify me'}
+              Notify me
             </button>
             {status === 'error' && (
               <p className="text-red-400 text-sm">{error}</p>
